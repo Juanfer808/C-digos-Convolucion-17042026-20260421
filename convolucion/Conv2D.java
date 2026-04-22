@@ -79,6 +79,37 @@ public class Conv2D {
         return kernel;
     }
 
+    public static float[][] convolveParalelo(float[][] input, float[][] kernel, int numThreads) {
+        // Creamos la matriz de salida y el array de hilos
+        float[][] output = new float[input.length][input[0].length];
+        Thread[] threads = new Thread[numThreads];
+        int rowsPerThread = input.length / numThreads; // Cálculo de filas por hebra
+        // Asignamos las filas a cada hilo
+        for (int i = 0; i < numThreads; i++){
+            int startRow = i * rowsPerThread; // Donde empieza la hebra seleccionada
+            int endRow = -1; // Donde termina la hebra seleccionada
+            // En caso de ser la última hebra, debe llegar al final de la imagen
+            if (i == numThreads - 1) {
+                endRow = input.length; // La última hebra procesa hasta el final
+            } else {
+                endRow = startRow + rowsPerThread; // Hebras intermedias procesan un bloque de filas
+            } 
+            // Creación y lanzamiento de la hebra
+            threads[i] = new TareaConvolucion(input, kernel, output, startRow, endRow);
+            threads[i].start();
+        }
+        
+        for (Thread thread : threads) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return output;
+    }
+
     public static void main(String[] args) throws IOException {
         int[][][] pixels = util.Image.loadImage("resources/etsii.png");
 

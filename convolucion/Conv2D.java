@@ -115,27 +115,65 @@ public class Conv2D {
 
         Timer t = new Timer();
 
-        t.start();
         int[][] pixels_gray = util.Image.toGray(pixels);
 
         float[][] kernel = createBoxKernel(5);
         float[][] pixels_normalized = Matrix.normalize(Matrix.toFloat(pixels_gray), 0, 255);
 
+        int numThreads = Runtime.getRuntime().availableProcessors();
+
+        convolve(pixels_normalized, kernel);
+        convolveParalelo(pixels_normalized, kernel, numThreads);
+
+        t.start();
         float[][] output_normalized = convolve(pixels_normalized, kernel);
+        t.stop();
+        long timeSecuencial = t.getElapsedTime();
+        System.out.println("Elapsed time (sequential): " + timeSecuencial + " ms");
+
+        t.start();
+        float[][] output_normalized_paralelo = convolveParalelo(pixels_normalized, kernel, numThreads);
+        t.stop();
+        long timeParalelo = t.getElapsedTime();
+        System.out.println("Elapsed time (parallel): " + timeParalelo + " ms");
+
+        float maxError = 0;
+        for (int i = 0; i < output_normalized.length; i++) {
+            for (int j = 0; j < output_normalized[0].length; j++) {
+                maxError = Math.max(maxError, Math.abs(output_normalized[i][j] - output_normalized_paralelo[i][j]));
+            }
+        }
+        System.out.println("Max error: " + maxError);
+
+        double speedup = (double) timeSecuencial / timeParalelo;
+        double efficiency = (speedup / numThreads)*100;
+        System.out.println("Speedup: " + speedup);
+        System.out.println("Efficiency: " + efficiency + "%");
+
+        // Guardado de resultados
+
+        float[][] outParNorm = Matrix.truncate(output_normalized_paralelo, 0, 1);
+        int[][] outParInt = Matrix.toInt(Matrix.scale(outParNorm, 255));
+        util.Image.saveImage("resources/etsii-blur-paralelo.png", util.Image.fromGray(outParInt));
+        System.out.println("Blurred image (parallel) saved to resources/etsii-blur-paralelo.png");
+
         output_normalized = Matrix.truncate(output_normalized, 0, 1);
         int[][] output = Matrix.toInt(Matrix.scale(output_normalized, 255));
         util.Image.saveImage("resources/etsii-blur.png", util.Image.fromGray(output));
         System.out.println("Blurred image saved to resources/etsii-blur.png");
 
         kernel = createEdgeKernel();
+        float[][] edges_paralelo = convolveParalelo(pixels_normalized, kernel, numThreads);
+        float[][] edges_norm = Matrix.truncate(edges_paralelo, 0, 1);
+        int[][] edges_int = Matrix.toInt(Matrix.scale(edges_norm, 255));
+        
         output_normalized = convolve(pixels_normalized, kernel);
         output_normalized = Matrix.truncate(output_normalized, 0, 1);
         output = Matrix.toInt(Matrix.scale(output_normalized, 255));
 
-        t.stop();
-        System.out.println("Elapsed time: " + t.getElapsedTime() + " ms");
-
         util.Image.saveImage("resources/etsii-edge.png", util.Image.fromGray(output));
         System.out.println("Edges saved to resources/etsii-edge.png");
+        util.Image.saveImage("resources/etsii-edge-paralelo.png", util.Image.fromGray(edges_int));
+        System.out.println("Edges (parallel) saved to resources/etsii-edge-paralelo.png");
     }
 }

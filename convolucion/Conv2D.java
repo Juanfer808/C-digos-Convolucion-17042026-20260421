@@ -117,10 +117,10 @@ public class Conv2D {
 
         int[][] pixels_gray = util.Image.toGray(pixels);
 
-        float[][] kernel = createBoxKernel(5);
+        float[][] kernel = createBoxKernel(3);
         float[][] pixels_normalized = Matrix.normalize(Matrix.toFloat(pixels_gray), 0, 255);
 
-        int numThreads = Runtime.getRuntime().availableProcessors();
+        int numThreads = 8;/*Runtime.getRuntime().availableProcessors();*/
 
         convolve(pixels_normalized, kernel);
         convolveParalelo(pixels_normalized, kernel, numThreads);

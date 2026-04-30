@@ -130,30 +130,26 @@ public class Conv2D {
         int[][] pixels_gray = util.Image.toGray(pixels);
         float[][] pixels_normalized = Matrix.normalize(Matrix.toFloat(pixels_gray), 0, 255);
         
-        float[][] kernel = createBoxKernel(9);
+        float[][] kernel = createBoxKernel(3);
         Timer t = new Timer();
-        int cores = Runtime.getRuntime().availableProcessors();
+        int cores = 8;
 
-        // Calentamiento y ejecución secuencial
         t.start();
         float[][] output_normalized = convolve(pixels_normalized, kernel);
         t.stop();
         long timeSecuencial = t.getElapsedTime();
         System.out.println("Elapsed time (sequential): " + timeSecuencial + " ms");
 
-        // EJERCICIO 2: Toma de tiempos en versión pool paralela[cite: 1]
         t.start();
         float[][] output_normalized_paralelo = convolveParalelo(pixels_normalized, kernel);
         t.stop();
         long timeParalelo = t.getElapsedTime();
         System.out.println("Elapsed time (parallel pool): " + timeParalelo + " ms");
 
-        // Métricas de comparación
         double speedup = (double) timeSecuencial / timeParalelo;
         System.out.println("Speedup: " + speedup);
         System.out.println("Efficiency: " + (speedup / cores) * 100 + "%");
 
-        // Guardado de resultados (Pool paralelo)[cite: 1]
         float[][] outParNorm = Matrix.truncate(output_normalized_paralelo, 0, 1);
         int[][] outParInt = Matrix.toInt(Matrix.scale(outParNorm, 255));
         util.Image.saveImage("resources/etsii-blur-paralelo.png", util.Image.fromGray(outParInt));
